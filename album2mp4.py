@@ -109,6 +109,7 @@ def do_process(folder, _cover, output, add_title, font, verbose):
     print("Fnames:", all_files)
     out = subprocess.check_output([executable, '-y', '-f', 'concat', '-safe', '0', '-i', filelisttxt, '-c', 'copy', output], stderr=subprocess.STDOUT)
     os.remove(filelisttxt)
+    os.path.remove(cover)
     for t in temps:
         os.path.remove(t)
     if verbose:
