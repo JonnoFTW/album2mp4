@@ -9,7 +9,6 @@ import platform
 
 from mutagen.easyid3 import EasyID3
 from mutagen.mp3 import MP3
-from scipy.weave.c_spec import file_converter
 
 is_windows = platform.system() == 'Windows'
 
@@ -108,15 +107,17 @@ def do_process(folder, _cover, output, add_title, font, verbose):
             file_list.write("file '{}'\n".format(line))
     all_files = 'concat:' + ('|'.join(temps))
     print("Fnames:", all_files)
-    out = subprocess.check_output([executable, '-y', '-f', 'concat', '-safe', '0', '-i', filelisttxt, '-c', 'copy', output])
+    out = subprocess.check_output([executable, '-y', '-f', 'concat', '-safe', '0', '-i', filelisttxt, '-c', 'copy', output], stderr=subprocess.STDOUT)
     os.remove(filelisttxt)
+    for t in temps:
+        os.path.remove(t)
     if verbose:
         print(out)
     with open(output + '.txt', 'w') as descr_file:
-        descr_file.write("{}\n".format(os.path.split(folder)[-1]))
+        descr_file.write("{}\n".format(os.path.split(folder)[-2]))
         for line in descr:
             descr_file.write(line + os.linesep)
-        descr_file.write("\nGenerated with album2mp4 https://github.com/jonnoftw/album2mp4")
+        descr_file.write("\nGenerated with https://github.com/jonnoftw/album2mp4")
 
 
 if __name__ == "__main__":
@@ -139,6 +140,8 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     music_folder = args.folder
+    if music_folder[-1] != os.path.sep:
+        music_folder += os.path.sep
     cover = args.cover
     output = args.output
     add_title = args.song_title

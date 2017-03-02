@@ -14,6 +14,12 @@ It should work on any system as long as you have those requirements, if you're
 running windows, you will need to specify a font file path.
 ## Usage
 
+You can quickly generate a file by running:
+
+```
+./album2mp4.py -f /path/to/folder -o /path/to/output.mp4 -c /path/to/folder/coverart.jpg
+```
+
 Running `album2mp4.py --help` will yield:
 
 ```
