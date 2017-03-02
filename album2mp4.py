@@ -108,7 +108,8 @@ def do_process(folder, _cover, output, add_title, font, verbose):
             file_list.write("file '{}'\n".format(line))
     all_files = 'concat:' + ('|'.join(temps))
     print("Fnames:", all_files)
-    out = subprocess.check_output( [executable, '-y', '-f', 'concat', '-safe', '0', '-i', filelisttxt, '-c', 'copy', output])
+    out = subprocess.check_output([executable, '-y', '-f', 'concat', '-safe', '0', '-i', filelisttxt, '-c', 'copy', output])
+    os.remove(filelisttxt)
     if verbose:
         print(out)
     with open(output + '.txt', 'w') as descr_file:
