@@ -105,13 +105,13 @@ def do_process(folder, _cover, output, add_title, font, verbose):
     with open(filelisttxt, 'w') as file_list:
         for line in temps:
             file_list.write("file '{}'\n".format(line))
-    all_files = 'concat:' + ('|'.join(temps))
-    print("Fnames:", all_files)
-    out = subprocess.check_output([executable, '-y', '-f', 'concat', '-safe', '0', '-i', filelisttxt, '-c', 'copy', output], stderr=subprocess.STDOUT)
+    out = subprocess.check_output(
+        [executable, '-y', '-f', 'concat', '-safe', '0', '-i', filelisttxt, '-c', 'copy', output],
+        stderr=subprocess.STDOUT)
     os.remove(filelisttxt)
-    os.path.remove(cover)
+    os.remove(cover)
     for t in temps:
-        os.path.remove(t)
+        os.remove(t)
     if verbose:
         print(out)
     with open(output + '.txt', 'w') as descr_file:
@@ -150,10 +150,9 @@ if __name__ == "__main__":
     verbose = args.verbose
     print("Converting folder of mp3 to mp4")
     from datetime import datetime
+
     startTime = datetime.now()
     do_process(music_folder, cover, output, add_title, font, verbose)
 
     print("Finished in", datetime.now() - startTime)
     print("Output in file:", output)
-
-
