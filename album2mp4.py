@@ -148,7 +148,7 @@ if __name__ == "__main__":
     startTime = datetime.now()
     do_process(music_folder, cover, output, add_title, font, verbose)
 
-    print("Finished in {}",  datetime.now() - startTime)
+    print("Finished in", datetime.now() - startTime)
     print("Output in file:", output)
 
 
