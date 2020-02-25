@@ -9,6 +9,7 @@ import platform
 
 from mutagen.easyid3 import EasyID3
 from mutagen.mp3 import MP3
+from mutagen.flac import FLAC
 
 is_windows = platform.system() == 'Windows'
 
@@ -38,7 +39,7 @@ executable = which('ffmpeg')
 if executable is None:
     executable = which('avconv')
     if executable is None:
-        quit("Please install ffmpeg or avconv")
+        exit("Please install ffmpeg or avconv")
 
 
 def create_cover(cover, folder):
@@ -54,7 +55,7 @@ def create_cover(cover, folder):
     img_w, img_h = cover_im.size
     bg_w, bg_h = cover_out.size
 
-    offset = ((bg_w - img_w) / 2, (bg_h - img_h) / 2)
+    offset = ((bg_w - img_w) // 2, (bg_h - img_h) // 2)
     cover_out.paste(cover_im, offset)
     print("Generated cover:\t", out_fname)
     cover_out.save(out_fname)
@@ -62,7 +63,7 @@ def create_cover(cover, folder):
     return out_fname
 
 
-def do_process(folder, _cover, output, add_title, font, verbose):
+def do_process(folder, _cover, output, add_title, font, verbose, flac=False):
     print("Folder:\t", folder)
     print("Cover:\t", _cover)
     print("Output:\t", output, "\n")
@@ -70,13 +71,18 @@ def do_process(folder, _cover, output, add_title, font, verbose):
     temps = []
     descr = []
     time = 0
-    for song in sorted(glob(folder + '*.mp3')):
-        out_name = song.split('.mp3')[0] + '.mp4'
-        mp3info = EasyID3(song)
-        mp3 = MP3(song)
+    glob_ext = ".flac" if flac else ".mp3"
+    for song in sorted(glob(folder + '*' + glob_ext)):
+        out_name = song.split(glob_ext)[0] + '.mp4'
+        if not flac:
+            title = EasyID3(song)['title'][0]
+            mp3 = MP3(song)
+        else:
+            mp3 = FLAC(song)
+            title = mp3['title'][0]
         print(out_name)
         temps.append(out_name)
-        descr.append("{0:0>2}:{1:0>2} - {2}".format(int(time) / 60, int(time) % 60, mp3info['title'][0]))
+        descr.append("{0:0>2}:{1:0>2} - {2}".format(int(time) / 60, int(time) % 60, title))
         args = [executable,
                 '-loop', '1',
                 '-y',
@@ -87,17 +93,22 @@ def do_process(folder, _cover, output, add_title, font, verbose):
             args += [
                 '-vf',
                 'drawtext=fontfile={}:text={}:fontcolor=white:fontsize=96:box=1:boxcolor=black@0.5:boxborderw=10:x=(w-tw)/2:y=(h/PHI)+th'.format(
-                    font, "{}".format(mp3info['title'][0])
+                    font, "{}".format(title)
                 )]
         args += [
             '-c:v', 'libx264',
-            '-c:a', 'copy',
+            '-c:a', 'libmp3lame',
+            '-q:a', '2',
             '-b:a', '320k',
             '-shortest',
             '-r', '5', out_name]
         if verbose:
             print(" ".join(args))
-        convert_out = subprocess.check_output(args, stderr=subprocess.STDOUT)
+        try:
+            convert_out = subprocess.check_output(args, stderr=subprocess.STDOUT)
+        except subprocess.CalledProcessError as exc:
+            print(f"Failed {args} with ", exc.output.decode('utf8'))
+            exit()
         if verbose:
             print(convert_out)
         time += mp3.info.length
@@ -130,13 +141,14 @@ if __name__ == "__main__":
         description='Turn a folder of mp3 files into a single video suitable for youtube upload')
     parser.add_argument('-f', '--folder', metavar='folder', help='The folder containing the mp3 files', required=True,
                         default=cwd)
+    parser.add_argument('-x', '--flac', help='Search for flac files instead of mp3', action='store_true')
     parser.add_argument('-o', '--output', metavar='output', help='The name of the output file',
                         default=os.path.split(os.getcwd())[-1] + '.mp4')
     parser.add_argument('-c', '--cover', metavar='cover', help='Location of the cover art', default=cwd + '/cover.jpg')
     parser.add_argument('-s', '--song-title', help='Add the song title to the video', action='store_true')
     parser.add_argument('-p', '--font-path', metavar='font_path', help='Path to font file',
                         default='/usr/share/fonts/truetype/liberation/LiberationSans-Regular.ttf',
-                        required=is_windows)
+                        )
     parser.add_argument('-v', '--verbose', help='Provide verbose output', action='store_true')
     args = parser.parse_args()
 
@@ -148,11 +160,12 @@ if __name__ == "__main__":
     add_title = args.song_title
     font = args.font_path
     verbose = args.verbose
+
     print("Converting folder of mp3 to mp4")
     from datetime import datetime
 
     startTime = datetime.now()
-    do_process(music_folder, cover, output, add_title, font, verbose)
+    do_process(music_folder, cover, output, add_title, font.replace("\\", "/"), verbose, args.flac)
 
     print("Finished in", datetime.now() - startTime)
     print("Output in file:", output)
